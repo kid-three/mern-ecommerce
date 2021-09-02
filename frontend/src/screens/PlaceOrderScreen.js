@@ -1,10 +1,15 @@
-import React, { useState } from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Row, Col, ListGroup, Image, Card } from 'react-bootstrap'
 import { useDispatch, useSelector } from 'react-redux'
 import Message from '../components/Message'
 import CheckoutSteps from '../components/CheckoutSteps'
-const PlaceOrderScreen = () => {
+import { createOrder } from '../actions/orderActions'
+import { USER_DETAILS_RESET } from '../constants/userConstants'
+import { ORDER_CREATE_RESET } from '../constants/orderConstants'
+
+const PlaceOrderScreen = ({ history }) => {
+  const dispatch = useDispatch()
   const cart = useSelector((state) => state.cart)
 
   //calculate prices
@@ -20,8 +25,30 @@ const PlaceOrderScreen = () => {
 
   cart.taxPrice = addDecimals(Number((0.15 * cart.itemsPrice).toFixed(2)))
 
+  const orderCreate = useSelector((state) => state.orderCreate)
+  const { order, success, error } = orderCreate
+
+  useEffect(() => {
+    if (success) {
+      history.push(`/order/${order._id}`)
+    }
+    dispatch({ type: USER_DETAILS_RESET })
+    dispatch({ type: ORDER_CREATE_RESET })
+    // eslint-disable-next-line
+  }, [history, success])
+
   const placeOrderHandler = () => {
-    console.log('yolo')
+    dispatch(
+      createOrder({
+        orderItems: cart.cartItems,
+        shippingAddress: cart.shippingAddress,
+        paymentMethod: cart.paymentMethod,
+        itemsPrice: cart.itemsPrice,
+        shippingPrice: cart.shippingPrice,
+        taxPrice: cart.taxPrice,
+        totalPrice: cart.totalPrice,
+      })
+    )
   }
 
   cart.totalPrice = (
@@ -110,6 +137,9 @@ const PlaceOrderScreen = () => {
                   <Col>Total</Col>
                   <Col>${cart.totalPrice}</Col>
                 </Row>
+              </ListGroup.Item>
+              <ListGroup.Item>
+                {error && <Message variant='danger'>{error}</Message>}
               </ListGroup.Item>
               <ListGroup.Item>
                 <Button
